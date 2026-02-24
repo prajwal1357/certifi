@@ -1,36 +1,52 @@
-const express = require("express");
-const Template = require("../models/Template");
-const generateCertificate = require("../services/pdfGenerator");
+const express = require("express")
+const Template = require("../models/Template")
+const generateCertificate = require("../services/pdfGenerator")
+const { sendCertificateEmail } = require("../services/mailService")
 
-const router = express.Router();
+const router = express.Router()
 
+// Middleware to verify send password
+const verifySendPassword = (req, res, next) => {
+  const { password } = req.body
+  const correctPassword = process.env.SEND_PASSWORD
+
+  if (!correctPassword) {
+    return res.status(500).json({ error: "SEND_PASSWORD not configured in .env" })
+  }
+
+  if (!password || password !== correctPassword) {
+    return res.status(403).json({ error: "Invalid password" })
+  }
+
+  next()
+}
+
+// Preview certificate (no password needed)
 router.post("/preview", async (req, res) => {
   try {
-    const { templateId, studentData } = req.body;
+    const { templateId, studentData } = req.body
 
-    const template = await Template.findById(templateId);
+    const template = await Template.findById(templateId)
     if (!template) {
-      return res.status(404).json({ error: "Template not found" });
+      return res.status(404).json({ error: "Template not found" })
     }
 
-    const pdfBytes = await generateCertificate(template, studentData);
+    const pdfBytes = await generateCertificate(template, studentData)
 
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "inline; filename=preview.pdf"
-    });
+      "Content-Disposition": "inline; filename=preview.pdf",
+    })
 
-    res.send(pdfBytes);
-
+    res.send(Buffer.from(pdfBytes))
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Preview error:", error)
+    res.status(500).json({ error: error.message })
   }
-});
+})
 
-const { sendCertificateEmail } = require("../services/mailService")
-
-// Send single certificate
-router.post("/send", async (req, res) => {
+// Send single certificate (password required)
+router.post("/send", verifySendPassword, async (req, res) => {
   try {
     const { templateId, studentData } = req.body
 
@@ -48,13 +64,13 @@ router.post("/send", async (req, res) => {
 
     res.json({ message: "Certificate sent successfully" })
   } catch (err) {
+    console.error("Send error:", err)
     res.status(500).json({ error: err.message })
   }
 })
 
-
-// Bulk send
-router.post("/send-bulk", async (req, res) => {
+// Bulk send (password required)
+router.post("/send-bulk", verifySendPassword, async (req, res) => {
   try {
     const { templateId, students } = req.body
 
@@ -86,8 +102,9 @@ router.post("/send-bulk", async (req, res) => {
 
     res.json({ results })
   } catch (err) {
+    console.error("Bulk send error:", err)
     res.status(500).json({ error: err.message })
   }
 })
 
-module.exports = router;
+module.exports = router
