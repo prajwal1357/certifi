@@ -16,8 +16,11 @@ mongoose.connect(process.env.MONGO_URI)
 
 
 const certificateRoutes = require("./routes/certificates");
+const excelRoutes = require("./routes/excel")
+app.use("/excel", excelRoutes)
 app.use("/certificate", certificateRoutes);
 app.use("/templates", templateRoutes);
+app.use("/uploads", express.static("uploads"))
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
