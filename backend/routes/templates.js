@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
-const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const Template = require("../models/Template");
 
 const router = express.Router();
 
@@ -16,27 +16,45 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/upload", upload.single("template"), (req, res) => {
-  const templateId = uuidv4();
+router.post("/upload", upload.single("template"), async (req, res) => {
+  try {
+    const newTemplate = new Template({
+      name: req.body.name,
+      pdfPath: req.file.path,
+      fields: []
+    });
 
-  const newTemplate = {
-    id: templateId,
-    name: req.body.name,
-    pdfPath: req.file.path,
-    fields: []
-  };
+    await newTemplate.save();
 
-  const templates = JSON.parse(fs.readFileSync("templates.json"));
-  templates.push(newTemplate);
-
-  fs.writeFileSync("templates.json", JSON.stringify(templates, null, 2));
-
-  res.json({ message: "Template uploaded", template: newTemplate });
+    res.json({ message: "Template uploaded", template: newTemplate });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-router.get("/", (req, res) => {
-  const templates = JSON.parse(fs.readFileSync("templates.json"));
+router.get("/", async (req, res) => {
+  const templates = await Template.find();
   res.json(templates);
+});
+
+router.post("/:id/layout", async (req, res) => {
+  try {
+    const { fields } = req.body;
+
+    const updatedTemplate = await Template.findByIdAndUpdate(
+      req.params.id,
+      { fields },
+      { new: true }
+    );
+
+    res.json({
+      message: "Layout saved successfully",
+      template: updatedTemplate
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
