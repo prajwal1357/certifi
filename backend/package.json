@@ -1,0 +1,25 @@
+{
+  "name": "certificate-backend",
+  "version": "1.0.0",
+  "description": "Certificate Automation Platform - Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "mongoose": "^9.2.2",
+    "multer": "^1.4.5-lts.2",
+    "nodemailer": "^6.10.1",
+    "nodemon": "^3.1.14",
+    "pdf-lib": "^1.17.1",
+    "uuid": "^11.1.0",
+    "xlsx": "^0.18.5"
+  }
+}
