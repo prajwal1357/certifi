@@ -45,8 +45,11 @@ async function generateCertificate(template, studentData) {
   // Fabric.js coordinates (canvas pixels) back to PDF points
   const CANVAS_SCALE = 1.5
 
+  console.log(`[PDF] Template: "${template.name}" | Fields: ${template.fields.length} | Student: ${JSON.stringify(studentData)}`)
+
   for (const field of template.fields) {
     const value = studentData[field.type] || ""
+    console.log(`[PDF] Field type="${field.type}" -> value="${value}" | x=${field.x}, y=${field.y}, fontSize=${field.fontSize}`)
     if (!value) continue
 
     // Get font

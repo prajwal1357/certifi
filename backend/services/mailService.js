@@ -9,12 +9,12 @@ const sendCertificateEmail = async ({ to, studentName, pdfBuffer }) => {
   }
 
   const client = new SendMailClient({
-    url: "https://api.zeptomail.in/v1.1/email",
+    url: "api.zeptomail.in/",
     token: process.env.ZEPTO_MAIL_TOKEN,
   })
 
   try {
-    await client.sendMail({
+    const response = await client.sendMail({
       from: {
         address: process.env.ZEPTO_MAIL_FROM,
         name: "Certificate Team",
@@ -27,10 +27,10 @@ const sendCertificateEmail = async ({ to, studentName, pdfBuffer }) => {
           },
         },
       ],
-      subject: "🎓 Your Certificate",
+      subject: "Your Certificate",
       htmlbody: `
         <div style="font-family: Arial; padding: 20px;">
-          <h2>Congratulations ${studentName} 🎉</h2>
+          <h2>Congratulations ${studentName}!</h2>
           <p>Please find your certificate attached.</p>
           <p>Best regards,<br/>Certificate Team</p>
         </div>
@@ -40,14 +40,16 @@ const sendCertificateEmail = async ({ to, studentName, pdfBuffer }) => {
         {
           name: "certificate.pdf",
           content: pdfBuffer.toString("base64"),
+          mime_type: "application/pdf",
         },
       ],
     })
 
+    console.log("Email sent to:", to, response)
     return true
   } catch (error) {
-    console.error("ZeptoMail Error:", error)
-    throw new Error("Failed to send certificate email")
+    console.error("ZeptoMail Error:", JSON.stringify(error, null, 2))
+    throw new Error(`Failed to send certificate email: ${JSON.stringify(error)}`)
   }
 }
 
