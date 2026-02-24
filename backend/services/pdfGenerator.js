@@ -21,10 +21,9 @@ const FONT_MAP = {
 function getFontKey(fontFamily, bold, italic) {
   const base = fontFamily || "Helvetica"
 
-  // Normalize base font name
   let normalizedBase = "Helvetica"
-  if (base.includes("Times")) normalizedBase = "Times"
-  else if (base.includes("Courier")) normalizedBase = "Courier"
+  if (base.toLowerCase().includes("times")) normalizedBase = "Times"
+  else if (base.toLowerCase().includes("courier")) normalizedBase = "Courier"
 
   if (normalizedBase === "Times") {
     if (bold && italic) return "Times-BoldItalic"
@@ -50,9 +49,7 @@ function getFontKey(fontFamily, bold, italic) {
 function hexToRgb(hex) {
   if (!hex || hex === "black") return rgb(0, 0, 0)
   if (hex === "white") return rgb(1, 1, 1)
-  if (hex === "red") return rgb(1, 0, 0)
-  if (hex === "blue") return rgb(0, 0, 1)
-
+  
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   if (result) {
     return rgb(
@@ -76,28 +73,40 @@ async function generateCertificate(template, studentData) {
   const page = pages[0]
   const { width: pageWidth, height: pageHeight } = page.getSize()
 
+  // The canvas in the frontend uses scale 1.5
   const CANVAS_SCALE = 1.5
 
-  console.log(`[PDF] Template: "${template.name}" | Fields: ${template.fields.length} | Student: ${JSON.stringify(studentData)}`)
+  console.log(`[PDF Gen] Printing for: ${studentData.name} on ${template.name}`)
 
   for (const field of template.fields) {
     const value = studentData[field.type] || ""
-    console.log(`[PDF] Field type="${field.type}" bold=${field.bold} italic=${field.italic} -> value="${value}" | x=${field.x}, y=${field.y}, fontSize=${field.fontSize}`)
     if (!value) continue
 
-    // Get the right font variant based on bold/italic
     const fontKey = getFontKey(field.fontFamily, field.bold, field.italic)
     const fontEnum = FONT_MAP[fontKey] || StandardFonts.Helvetica
     const font = await pdfDoc.embedFont(fontEnum)
 
     const fontSize = (field.fontSize || 40) / CANVAS_SCALE
-    const color = hexToRgb(field.color || "black")
+    const color = hexToRgb(field.color || "#000000")
 
-    // Convert canvas coordinates to PDF coordinates
+    // POSITIONING REFINEMENT:
+    // field.x and field.y are from Fabric.js (top-left origin, Y down)
+    // PDF x,y are from bottom-left origin, Y up.
+    
+    // X is simple scale
     const x = field.x / CANVAS_SCALE
-    const y = pageHeight - (field.y / CANVAS_SCALE) - fontSize
+    
+    // Y Refinement:
+    // Distance from top in points:
+    const topOffset = field.y / CANVAS_SCALE
+    
+    // Fabric text objects have a small amount of "ascent" space even at y=0.
+    // Standard fonts in drawText use the BASELINE.
+    // To match Fabric's 'top' origin, we need to subtract roughly 0.8 * fontSize from the top point.
+    // (Helps alignment with visual center/top of characters)
+    const y = pageHeight - topOffset - (fontSize * 0.8)
 
-    page.drawText(value, {
+    page.drawText(String(value), {
       x,
       y,
       size: fontSize,
@@ -106,8 +115,7 @@ async function generateCertificate(template, studentData) {
     })
   }
 
-  const pdfBytes = await pdfDoc.save()
-  return pdfBytes
+  return await pdfDoc.save()
 }
 
 module.exports = generateCertificate
