@@ -14,6 +14,9 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
+
+const certificateRoutes = require("./routes/certificates");
+app.use("/certificate", certificateRoutes);
 app.use("/templates", templateRoutes);
 
 app.listen(5000, () => {
